@@ -1,7 +1,8 @@
 # read data
 library(tidyverse)
 RNA_bac <- readxl::read_excel(here::here("B50_陳柏豪.xlsx"), 1)
-DNA_bac <- readxl::read_excel(here::here("B50_陳柏豪.xlsx"), 2, guess_max= 3000)
+DNA_bac <- readxl::read_excel(here::here("B50_陳柏豪.xlsx"), 2,
+                              guess_max= 3000) # maximum of NA values from the top
 
 # join the tables
 RNA_bac_join <-
@@ -16,15 +17,19 @@ select_RNA_DNA <-
          `Log(FPKM+1)/testosterone`,
          `Log(FPKM+1)/estrone`,
          `steroid catabolic function.y`) %>%
-  mutate(alpha_group = ifelse(is.na(`steroid catabolic function.y`), "Y", "N"))
+  mutate(function_group = ifelse(is.na(`steroid catabolic function.y`), "Y", "N")) %>%
+  mutate(selected_DNA =  ifelse(Prokka_ID %in% c("GMFMDNLD_02935",
+                                                 "GMFMDNLD_03019"), # specify data point here
+                                Prokka_ID, NA))
 
 # make a plot
 library(ggplot2)
 library(ggforce)
+library(ggrepel)
 select_RNA_DNA %>%
   ggplot(aes(`Log(FPKM+1)/cholesterol`, `Log(FPKM+1)/testosterone`)) +
   geom_point(aes(color = `steroid catabolic function.y`,
-             alpha = alpha_group),
+             alpha = function_group),
              size = 2) +
   scale_alpha_discrete(range = c(1, 0.15)) +
   viridis::scale_color_viridis(discrete = TRUE) +
@@ -32,4 +37,23 @@ select_RNA_DNA %>%
   scale_color_discrete(name="") + # remove legend title
   theme_minimal() +
   theme(legend.position="top")
+
+# use viridis
+select_RNA_DNA %>%
+  ggplot(aes(`Log(FPKM+1)/cholesterol`, `Log(FPKM+1)/testosterone`)) +
+  geom_point(color = "gray") +
+  geom_point(aes(color = `steroid catabolic function.y`),
+             size = 2.5,
+             alpha = 0.8) +
+  #geom_label_repel(aes(label = selected_DNA)) +
+                   #box.padding   = 0.35,
+                   #point.padding = 0.5,
+                   #segment.color = 'grey50') +
+  viridis::scale_color_viridis(discrete = TRUE) +
+  geom_point(data = subset(select_RNA_DNA, !is.na(selected_DNA)),
+             col = "red", stroke = 0.8, shape = 21) +
+  guides(alpha = FALSE) +
+  theme_minimal() +
+  theme(legend.position="top") +
+  theme(legend.title=element_blank())
 
