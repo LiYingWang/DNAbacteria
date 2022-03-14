@@ -19,10 +19,14 @@ select_RNA_DNA <-
          `steroid catabolic function.y`) %>%
   mutate(function_group = ifelse(is.na(`steroid catabolic function.y`), "Y", "N")) %>%
   #mutate(`steroid catabolic function.y` = ifelse(is.na(`steroid catabolic function.y`),
-                                                 #"others",`steroid catabolic function.y`)) %>%
+                                                 #"",`steroid catabolic function.y`)) %>%
   mutate(selected_DNA =  ifelse(Prokka_ID %in% c("GMFMDNLD_02935",
                                                  "GMFMDNLD_03019"), # specify data point here
-                                Prokka_ID, NA))
+                                Prokka_ID, NA)) %>%
+  mutate(`Log(FPKM+1)/estrone - Log(FPKM+1)/cholesterol` =
+           `Log(FPKM+1)/estrone`-`Log(FPKM+1)/cholesterol`) %>%
+  mutate(`Log(FPKM+1)/estrone - Log(FPKM+1)/testosterone` =
+           `Log(FPKM+1)/estrone`-`Log(FPKM+1)/testosterone`)
 
 # make a plot
 library(ggplot2)
@@ -107,5 +111,33 @@ plot_grid(plot_ct,
 ggsave(here::here("gene_expression.png"),
        width = 230,
        height = 230,
+       dpi = 300,
+       units = "mm")
+
+# Plot the difference of gene_expression
+
+diff_gene <-
+  select_RNA_DNA %>%
+  ggplot(aes(`Log(FPKM+1)/estrone - Log(FPKM+1)/cholesterol`,
+             `Log(FPKM+1)/estrone - Log(FPKM+1)/testosterone`))+
+  geom_point(color = "darkgray", alpha = 0.5) +
+  geom_point(aes(color = `steroid catabolic function.y`),
+             size = 2.5,
+             alpha = 0.9) +
+  #geom_label_repel(aes(label = selected_DNA)) +
+  #box.padding   = 0.35,
+  #point.padding = 0.5,
+  #segment.color = 'grey50') +
+  viridis::scale_color_viridis(discrete = TRUE) +
+  geom_point(data = subset(select_RNA_DNA, !is.na(selected_DNA)),
+             col = "red", stroke = 0.8, shape = 21) +
+  guides(alpha = FALSE) +
+  theme_minimal() +
+  theme(legend.position="top") +
+  theme(legend.title=element_blank())
+
+ggsave(here::here("gene_expression_diff.png"),
+       width = 200,
+       height = 200,
        dpi = 300,
        units = "mm")
